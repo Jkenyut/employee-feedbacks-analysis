@@ -1,0 +1,14 @@
+<html>
+    <body>
+        <form action = "{{ url_for('index') }}" method = "post" enctype="multipart/form-data">
+            <input type="file" name="video">
+            <br>
+            <button type="submit">Kirim</button>
+         </form>
+         {% if video %}
+            <video width="400" controls>
+                <source src="{{ video }}" type="video/mp4">
+            </video>
+        {% endif %}
+    </body>
+</html>
