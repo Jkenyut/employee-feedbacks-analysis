@@ -9,8 +9,6 @@ from datetime import datetime
 import moviepy.editor as mp
 r = sr.Recognizer()
 
-# fungsi merubah mp4 ke mp3/wav
-
 # melakukan encoding gambar di folder untuk face recognition
 path = 'karyawan'
 images = []
@@ -37,7 +35,7 @@ def findEncodings(images):
 
 encodeListKnown = findEncodings(images)
 
-
+# fungsi merubah mp4 ke mp3/wav
 def video_to_audio(path):
     # drop code untuk mengubah video ke audio
     clip = mp.VideoFileClip('static/video-uploaded/'+path)
@@ -45,8 +43,6 @@ def video_to_audio(path):
     return "static/audio-uploaded/"+path+".wav"  # mengembalikan nilai path
 
 # fungsi merubah audio ke teks
-
-
 def audio_to_teks(path, lang='id-ID'):
     # drop code untuk mengubah audio ke teks
     with sr.AudioFile(path) as source:
@@ -56,20 +52,29 @@ def audio_to_teks(path, lang='id-ID'):
     return text
 
 # fungsi prediksi perasaan
-
-
 def predict_feeling(path):
     # mp4 to wav/mp3
     vid2aud = video_to_audio(path)
     # audio to teks
     aud2text = audio_to_teks(vid2aud)
-    # prediksi
-    # feel = # hasil prediksi perasaan
-    return aud2text
+    # prediksi emosi teks
+    # load pretrained
+    bert_load_model = TFBertForSequenceClassification.from_pretrained(PRE_TRAINED_MODEL, num_labels=3)
+    bert_load_model.load_weights('bert-model.h5')
+    # Encode input text
+    input_text_tokenized = bert_tokenizer.encode(aud2text,
+                                             truncation=True,
+                                             padding='max_length',
+                                             return_tensors='tf')
+    bert_predict = bert_load_model(input_text_tokenized)          # Lakukan prediksi
+    bert_output = tf.nn.softmax(bert_predict[0], axis=-1)         # Softmax function untuk mendapatkan hasil klasifikasi
+    emotion_label = ['anger', 'fear', 'happy', 'love', 'sadness']
+    label = tf.argmax(bert_output, axis=1)
+    label = label.numpy()
+    feel = emotion_label[label[0]]
+    return aud2text, feel
 
 # fungsi untuk identifikasi wajah karyawan
-
-
 def faces_encode(img):
     facesCurFrame = face_recognition.face_locations(img)
     encodesCurFrame = face_recognition.face_encodings(img, facesCurFrame)
@@ -110,8 +115,6 @@ def employee_identity(path):
     return id_karyawan  # mengembalikan id karyawan
 
 # menambahkan data hasil analisis video dan teks
-
-
 def add_to_list(id, komentar, perasaan):
     # mencari nilai id pada csv data karyawan
     profile_akun = profile[profile['nama'] == id]
@@ -126,8 +129,6 @@ def add_to_list(id, komentar, perasaan):
     return data
 
 # fungsi utama
-
-
 def analysis(path):
     #
     # hasil identifikasi wajah
