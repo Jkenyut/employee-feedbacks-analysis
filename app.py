@@ -35,8 +35,8 @@ def index():
         video.save(os.path.join(app.config['UPLOAD_FOLDER'], video_filename))
 
         video = UPLOAD_FOLDER+video.filename
-        # data = analysis(video) # menampilkan hasil dari analisis
-    return render_template('index.html', video=video)
+        data = analysis(video) # menampilkan hasil dari analisis
+    return render_template('index.html', video=data)
 
 
 if __name__ == '__main__':
