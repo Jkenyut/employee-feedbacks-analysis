@@ -8,18 +8,28 @@ import face_recognition
 from datetime import datetime
 import moviepy.editor as mp
 r = sr.Recognizer()
+#bert library
+import transformers
+import tensorflow as tf
+from transformers import TFBertForSequenceClassification
+from transformers import BertTokenizer
 
-# melakukan encoding gambar di folder untuk face recognition
-path = 'karyawan'
+#inisialisasi persiapan bert
+PRE_TRAINED_MODEL = 'indobenchmark/indobert-base-p2'
+bert_tokenizer = BertTokenizer.from_pretrained(PRE_TRAINED_MODEL)
+
+#melakukan encoding gambar di folder untuk face recognition
+path = '/content/drive/MyDrive/Orbit/PA/Karyawan'
 images = []
 classNames = []
 myList = os.listdir(path)
-
 for cl in myList:
     curImg = cv2.imread(f'{path}/{cl}')
     images.append(curImg)
     classNames.append(os.path.splitext(cl)[0])
-
+#data karyawan
+data_karyawan = pd.read_csv('/content/drive/MyDrive/Orbit/PA/Karyawan.csv') #sesuaikan path
+feedback =pd.read_csv('/content/drive/MyDrive/Orbit/PA/Feedback.csv') #sesuaikan path
 
 def findEncodings(images):
     encodeList = []
@@ -31,16 +41,14 @@ def findEncodings(images):
         except IndexError as e:
             print(e)
     return encodeList
-
-
 encodeListKnown = findEncodings(images)
 
 # fungsi merubah mp4 ke mp3/wav
 def video_to_audio(path):
     # drop code untuk mengubah video ke audio
-    clip = mp.VideoFileClip('static/video-uploaded/'+path)
-    clip.audio.write_audiofile(r"static/audio-uploaded/"+path+".wav")
-    return "static/audio-uploaded/"+path+".wav"  # mengembalikan nilai path
+    clip = mp.VideoFileClip(path)
+    clip.audio.write_audiofile(r'content'+".wav") #sesuaikan path
+    return r'content'+".wav"  # mengembalikan nilai path
 
 # fungsi merubah audio ke teks
 def audio_to_teks(path, lang='id-ID'):
@@ -59,8 +67,8 @@ def predict_feeling(path):
     aud2text = audio_to_teks(vid2aud)
     # prediksi emosi teks
     # load pretrained
-    bert_load_model = TFBertForSequenceClassification.from_pretrained(PRE_TRAINED_MODEL, num_labels=3)
-    bert_load_model.load_weights('bert-model.h5')
+    bert_load_model = TFBertForSequenceClassification.from_pretrained(PRE_TRAINED_MODEL, num_labels=5)
+    bert_load_model.load_weights('/content/drive/MyDrive/Orbit/PA/bert-model.h5') #sesuaikan path
     # Encode input text
     input_text_tokenized = bert_tokenizer.encode(aud2text,
                                              truncation=True,
@@ -68,7 +76,7 @@ def predict_feeling(path):
                                              return_tensors='tf')
     bert_predict = bert_load_model(input_text_tokenized)          # Lakukan prediksi
     bert_output = tf.nn.softmax(bert_predict[0], axis=-1)         # Softmax function untuk mendapatkan hasil klasifikasi
-    emotion_label = ['anger', 'fear', 'happy', 'love', 'sadness']
+    emotion_label = ['anger', 'happy', 'sadness', 'fear', 'love']
     label = tf.argmax(bert_output, axis=1)
     label = label.numpy()
     feel = emotion_label[label[0]]
@@ -104,10 +112,10 @@ def employee_identity(path):
             # print(faceDis)
             matchIndex = np.argmin(faceDis)
             if matches[matchIndex]:
-                name = classNames[matchIndex].lower()
-                print(name)
-                if name in ['satria', 'satria1']:
-                    id_karyawan = name
+                id = classNames[matchIndex].lower()
+               
+                if id in list(str(data_karyawan['Id'])):
+                    id_karyawan = int(id)
                     print(id_karyawan)
                     run = (False)
                 else:
@@ -117,7 +125,7 @@ def employee_identity(path):
 # menambahkan data hasil analisis video dan teks
 def add_to_list(id, komentar, perasaan):
     # mencari nilai id pada csv data karyawan
-    profile_akun = profile[profile['nama'] == id]
+    profile_akun =  data_karyawan[data_karyawan['Id'] == id]
     # ubah ke list
     data = profile_akun.values.tolist()[0]
     # datetime
@@ -136,10 +144,9 @@ def analysis(path):
     # hasil analisis komentar dan perasaan
     komentar, perasaan = predict_feeling(path)
     # hasil keseluruhan analisis
-    data = add_to_list(id, komentar, perasaan)
+    data = add_to_list(id_karyawan, komentar, perasaan)
     # tambah ke dataframe
-    data = pd.DataFrame([a], columns=data_classify_col)
-    data_klasifikasi = data_klasifikasi.append(data)
-
-
-employee_identity('static/video-uploaded/video_20220427_133336.mp4')
+    data_series = pd.Series(data, index = feedback.columns)
+    hasil_feedback = feedback.append(data_series, ignore_index=True)
+    hasil_feedback.to_csv('/content/drive/MyDrive/Orbit/PA/Feedback.csv')
+	return id_karyawan, komentar, perasaan
