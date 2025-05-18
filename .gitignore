@@ -1,0 +1,3 @@
+model/__pycache__
+static/test_image/*
+*.DS_Store
