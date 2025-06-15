@@ -112,6 +112,11 @@ Access the application at `http://localhost:5000` in your web browser.
     -   Classify the transcribed text into one of five emotions (angry, happy, sadness, fear, love).
 4.  View the results, including the identified employee and the classified emotion, on the web interface.
 
+## 📸 Screenshots
+
+![Screenshot 1](./demo.png)
+
+
 ## 🤝 Contributing
 
 Contributions are welcome! To contribute:
